@@ -69,7 +69,7 @@ def _compile(sketch_folder, sketch_name):
 
     # creo il progetto se non è gia presente:
     if not os.path.isdir(js_folder):
-        subprocess.call(f'pyp5js new {name}', env=env, shell=True)
+        subprocess.call(f'pyp5js new -i transcrypt {name}', env=env, shell=True)
 
     # poi ci copio dentro il file main 
     # (a cui levo le prime righe, che servono per lanciare questo script, e aggiungo l'import della
@@ -87,10 +87,12 @@ def _compile(sketch_folder, sketch_name):
     for file_to_import in imports:
         input_path = f"{sketch_folder}/{file_to_import}"
         output_path = f"{js_folder}/{file_to_import}"
-        add_import_to_file(input_path, output_path, line_to_write='from pyp5js import *\n')
+        add_import_to_file(input_path, output_path, 
+            line_to_write='from pyp5js import *\n'
+        )
 
     # infine lancio il processo di transcrypting di tutta la folder
-    subprocess.call(f'pyp5js transcrypt {name}', env=env, shell=True)
+    subprocess.call(f'pyp5js compile {name}', env=env, shell=True)
 
 
 

@@ -19,7 +19,11 @@ def launch_server(folder, name, loop):
     server = Server()
     server.watch(f'{folder}/*.py', shell(f'python3 compiler.py {folder} {name}', cwd=package_dir))
     root = name.replace('.py', '')
-    server.serve(root=root, liveport=35729)        
+    server.serve(root=root, liveport=35729)  
+
+def launch_window(sketch_name, width=1100, height=700):
+    webview.create_window(sketch_name, url='http://127.0.0.1:5500', width=width, height=height)        
+    webview.start(debug=True)          
 
 
 if __name__ != '__main__':
@@ -35,6 +39,9 @@ if __name__ != '__main__':
         if sketch_name[0] != '<' and sketch_name != f'{package_dir}/__init__.py':
             break
     
+    if "/" in sketch_name:
+        sketch_name.split("/")[-1]
+        
     # get the folder from which the main script is imported
     sketch_folder = os.getcwd()
     
@@ -50,6 +57,7 @@ if __name__ != '__main__':
     t.start()
 
     # creo una finestra e lancio il webview
-    window = webview.create_window(sketch_name, url='http://127.0.0.1:5500', width=1100, height=700)        
-    webview.start(debug=True) 
+    # window = webview.create_window(sketch_name, url='http://127.0.0.1:5500', width=1100, height=700)        
+    # webview.start(debug=True) 
+    launch_window(sketch_name)
     
