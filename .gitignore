@@ -1,2 +1,4 @@
 /.DS_Store
-/p5Launcher.egg-info
+p5Launcher.egg-info
+p5Launcher/__pycache__
+.gitignore

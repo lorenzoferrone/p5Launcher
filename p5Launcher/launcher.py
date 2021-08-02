@@ -5,7 +5,7 @@ e lo sketch (python) viene eseguito con python3 sketch_name.py
 import webview
 import asyncio
 import pathlib
-import os,  threading, inspect
+import os, threading, inspect
 from livereload import Server, shell
 
 from .compiler import _compile
