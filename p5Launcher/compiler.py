@@ -77,7 +77,7 @@ def _compile(sketch_folder, sketch_name):
     add_import_to_file(
         input_path=sketch_path, 
         output_path=f'{js_folder}/{sketch_name}', 
-        line_to_skip='import p5Launcher', 
+        line_to_skip='p5Launcher', 
         line_to_write='from pyp5js import *\n'
     )
 

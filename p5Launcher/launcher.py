@@ -2,10 +2,11 @@
 e lo sketch (python) viene eseguito con python3 sketch_name.py
 '''
 
+from re import IGNORECASE
 import webview
 import asyncio
 import pathlib
-import os, threading, inspect
+import os, threading, inspect, sys
 from livereload import Server, shell
 
 from .compiler import _compile
@@ -26,19 +27,16 @@ def launch_window(sketch_name, width=1100, height=700):
     webview.start(debug=True)          
 
 
-if __name__ != '__main__':
+def _setup(width=1100, height=700):
 
-    # trovo il nome della cartella che ospita QUESTO package
-    package_dir = pathlib.Path(__file__).parent.resolve()
-
-    # trovo il nome del file .py (compresa l'estensione) che importa questo script
-    # ispeziono lo stack delle chiamate e trovo il file con nome diverso dall'init di questo package
-    # e il cui nome non inizi con "<"
-    for frame in inspect.stack()[1:]:
-        sketch_name = frame.filename
-        if sketch_name[0] != '<' and sketch_name != f'{package_dir}/__init__.py':
-            break
+    try:
+        width = int(sys.argv[1])
+        height = int(sys.argv[2])
+    except:
+        print('no or invalid parameters')
     
+    sketch_name = inspect.stack()[-1].filename
+
     if "/" in sketch_name:
         sketch_name.split("/")[-1]
         
@@ -59,5 +57,7 @@ if __name__ != '__main__':
     # creo una finestra e lancio il webview
     # window = webview.create_window(sketch_name, url='http://127.0.0.1:5500', width=1100, height=700)        
     # webview.start(debug=True) 
-    launch_window(sketch_name)
+    launch_window(sketch_name, width, height)
     
+
+_setup()
