@@ -2,7 +2,6 @@
 e lo sketch (python) viene eseguito con python3 sketch_name.py
 '''
 
-from re import IGNORECASE
 import webview
 import asyncio
 import pathlib
@@ -38,7 +37,7 @@ def _setup(width=1100, height=700):
     sketch_name = inspect.stack()[-1].filename
 
     if "/" in sketch_name:
-        sketch_name.split("/")[-1]
+        sketch_name = sketch_name.split("/")[-1]
         
     # get the folder from which the main script is imported
     sketch_folder = os.getcwd()
