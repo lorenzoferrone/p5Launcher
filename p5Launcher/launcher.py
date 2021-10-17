@@ -1,23 +1,32 @@
 '''questo è il file che viene lanciato quando il modulo viene importato
 e lo sketch (python) viene eseguito con python3 sketch_name.py
 '''
-
 import webview
 import asyncio
 import pathlib
-import os, threading, inspect, sys
+import os, threading, inspect, sys, glob
 from livereload import Server, shell
 
 from .compiler import _compile
 
 
+
 def launch_server(folder, name, loop):
 
+    print(f"{folder=}, {name=}")
+
+    name_without_ext = name.replace('.py', '')
     package_dir = pathlib.Path(__file__).parent.resolve()
 
     asyncio.set_event_loop(loop)
     server = Server()
-    server.watch(f'{folder}/*.py', shell(f'python3 compiler.py {folder} {name}', cwd=package_dir))
+
+    exclude = set(glob.glob(f'{folder}/{name_without_ext}/**/**/*.py'))
+    include = set(glob.glob(f'{folder}/**/**/*.py'))
+
+    print(include - exclude)
+
+    server.watch(f'{folder}/**/!({name_without_ext})/**/*.py', shell(f'python3 compiler.py {folder} {name}', cwd=package_dir))
     root = name.replace('.py', '')
     server.serve(root=root, liveport=35729)  
 

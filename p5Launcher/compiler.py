@@ -1,10 +1,12 @@
 import subprocess
-import os, ast
+import os, ast, pathlib
 import sys
 
 
 def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write=None):
     print(f"copying {input_path} to {output_path}")
+
+    os.makedirs("/".join(output_path.split("/")[0:-1]), exist_ok=True)
     with open(input_path) as input_file, open(output_path, 'w') as output_file:
         lines = input_file.readlines()
     
@@ -49,8 +51,13 @@ def get_files_to_import(sketch_path):
                 imports.append(import_file)
    
     for import_file in imports:
+        # convert name with dot into path
+        dotCount = import_file.count('.')
+        if dotCount >= 2: # un "." è quello dell'estensione... converto gli altri in "/"
+            import_file = import_file.replace(".", "/", dotCount - 1)
         # controllo esista veramente
         import_file_path = f"{sketch_folder}/{import_file}"
+        print(f"{import_file=}")
         if os.path.isfile(import_file_path):
             yield import_file
 
@@ -89,7 +96,9 @@ def _compile(sketch_folder, sketch_name):
     # e copio anch'essi nella cartella
     imports = get_files_to_import(sketch_path)
 
+    # print(f"{list(imports)=}")
     for file_to_import in imports:
+        
         input_path = f"{sketch_folder}/{file_to_import}"
         output_path = f"{js_folder}/{file_to_import}"
         add_import_to_file(input_path, output_path, 
