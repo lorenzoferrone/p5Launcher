@@ -4,6 +4,7 @@ import sys
 
 
 def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write=None):
+    print(f"copying {input_path} to {output_path}")
     with open(input_path) as input_file, open(output_path, 'w') as output_file:
         lines = input_file.readlines()
     
@@ -26,6 +27,8 @@ def get_files_to_import(sketch_path):
     '''legge il file presente <path> e identifica i file (nella stessa cartella) 
     che vengono importati'''
 
+    sketch_folder = "/".join(sketch_path.split("/")[0:-1])
+
     # TODO: implementare il resolve di moduli che non sono necessariamente
     # nella stessa cartella (magari stanno dentro altre sottocartelle) 
        
@@ -47,7 +50,8 @@ def get_files_to_import(sketch_path):
    
     for import_file in imports:
         # controllo esista veramente
-        if os.path.isfile(import_file):
+        import_file_path = f"{sketch_folder}/{import_file}"
+        if os.path.isfile(import_file_path):
             yield import_file
 
 
@@ -84,6 +88,7 @@ def _compile(sketch_folder, sketch_name):
     # faccio il parsing dell'ast per trovare anche i file da imporate
     # e copio anch'essi nella cartella
     imports = get_files_to_import(sketch_path)
+
     for file_to_import in imports:
         input_path = f"{sketch_folder}/{file_to_import}"
         output_path = f"{js_folder}/{file_to_import}"
@@ -92,13 +97,10 @@ def _compile(sketch_folder, sketch_name):
         )
 
     # infine lancio il processo di transcrypting di tutta la folder
-    subprocess.call(f'pyp5js compile {name}', env=env, shell=True)
+    subprocess.run(f'pyp5js compile {name}', env=env, shell=True, capture_output=True)
 
 
 
 if __name__ == '__main__':
     folder, name = sys.argv[1:]
     _compile(folder, name)
-
-
-

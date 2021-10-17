@@ -8,10 +8,11 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='p5Launcher', 
-    version='0.1.0', 
+    version='0.1.1', 
     author='LF', 
     description='launches p5 sketches into a standalone window',
     long_description=long_description,
+    long_description_content_type = 'text/markdown',
     install_requires=['pywebview==3.4', 'pyp5js', 'livereload'],
     url='https://github.com/lorenzoferrone/p5Launcher',
     keywords=['p5js', 'creative coding', 'processing'],
