@@ -26,7 +26,7 @@ def launch_server(folder, name, loop):
 
     print(include - exclude)
 
-    server.watch(f'{folder}/**/!({name_without_ext})/**/*.py', shell(f'python3 compiler.py {folder} {name}', cwd=package_dir))
+    server.watch(f'{folder}/*.py', shell(f'python3 compiler.py {folder} {name}', cwd=package_dir))
     root = name.replace('.py', '')
     server.serve(root=root, liveport=35729)  
 

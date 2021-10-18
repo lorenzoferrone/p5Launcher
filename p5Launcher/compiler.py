@@ -80,7 +80,7 @@ def _compile(sketch_folder, sketch_name):
 
     # creo il progetto se non è gia presente:
     if not os.path.isdir(js_folder):
-        subprocess.call(f'pyp5js new -i transcrypt {name}', env=env, shell=True)
+        subprocess.call(f'pyp5js new {name}', env=env, shell=True)
 
     # poi ci copio dentro il file main 
     # (a cui levo le prime righe, che servono per lanciare questo script, e aggiungo l'import della
@@ -89,7 +89,6 @@ def _compile(sketch_folder, sketch_name):
         input_path=sketch_path, 
         output_path=f'{js_folder}/{sketch_name}', 
         line_to_skip='p5Launcher', 
-        line_to_write='from pyp5js import *\n'
     )
 
     # faccio il parsing dell'ast per trovare anche i file da imporate
