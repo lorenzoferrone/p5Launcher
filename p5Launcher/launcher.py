@@ -3,8 +3,8 @@ e lo sketch (python) viene eseguito con python3 sketch_name.py
 '''
 import webview
 import asyncio
-import pathlib
-import os, threading, inspect, sys, glob
+from pathlib import Path
+import threading, inspect, sys, glob
 from livereload import Server, shell
 
 from .compiler import _compile
@@ -15,8 +15,7 @@ def launch_server(path, loop):
 
     sketch_folder = path.parent
 
-    # name_without_ext = name.replace('.py', '')
-    package_dir = pathlib.Path(__file__).parent.resolve()
+    package_dir = Path(__file__).parent.resolve()
 
     asyncio.set_event_loop(loop)
     server = Server()
@@ -45,7 +44,7 @@ def _setup(width=1100, height=700):
         print('no or invalid parameters')
     
     # read sketch path/name from import stack anc convert to pathlib for easier manipulation
-    sketch_path = pathlib.Path(inspect.stack()[-1].filename)
+    sketch_path = Path(inspect.stack()[-1].filename)
     
     # compilo il codice
     _compile(sketch_path)

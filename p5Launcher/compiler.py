@@ -1,7 +1,6 @@
 import subprocess
-import sys, os, ast, pathlib
-from importlib.util import find_spec, spec_from_file_location
-from importlib.machinery import PathFinder
+import sys, os, ast
+from pathlib import Path
 
 
 def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write=None):
@@ -9,20 +8,15 @@ def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write
     os.makedirs(output_path.parent, exist_ok=True)
     with open(input_path) as input_file, open(output_path, 'w') as output_file:
         lines = input_file.readlines()
-    
-        # cerco l'indice della prima riga del file che contiene la riga da skippare
-        if line_to_skip:
-            for i, line in enumerate(lines):
-                if line_to_skip in line:
-                    starting_index = i + 1
-                    break
-        else:
-            starting_index = 0
-        # la prima riga che copio è l'import di pyp5js
+
         if line_to_write:
             output_file.write(line_to_write)
-        
-        output_file.writelines(lines[starting_index:])
+
+        if line_to_skip:
+            lines = [line for line in lines if line_to_skip not in line]
+     
+        output_file.writelines(lines)
+
 
 def get_modules_to_import(sketch_path):
     '''legge il file <path> e identifica i moduli da importare'''
@@ -45,23 +39,16 @@ def get_files_to_import(sketch_path):
     che vengono importati'''
 
     sketch_folder = sketch_path.parent
-
-       
     modules = get_modules_to_import(sketch_path)
 
     # dai nomi trovo i file veri e propri, tenendo solo quelli nella stessa cartella
-    imports = []
     for import_file in modules:
-        spec = import_file.replace(".", "/") + '.py'
-        spec = pathlib.Path(sketch_folder) / spec
-        spec = spec_from_file_location(import_file, spec)
-        if spec:
-            if sketch_folder in pathlib.Path(spec.origin).parents:
-                imports.append(spec.origin)
+        spec = Path(import_file.replace(".", "/")).with_suffix('.py')
+        spec = sketch_folder / spec
+        if sketch_folder in spec.parents:
+            if os.path.isfile(spec):
+                yield spec.relative_to(sketch_folder)
 
-    for import_file in imports:
-        if os.path.isfile(import_file):
-            yield pathlib.Path(import_file).relative_to(sketch_folder)
     
 
 def _compile(sketch_path):
@@ -104,4 +91,4 @@ def _compile(sketch_path):
 
 if __name__ == '__main__':
     path = sys.argv[1]
-    _compile(pathlib.Path(path))
+    _compile(Path(path))
