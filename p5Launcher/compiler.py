@@ -1,12 +1,12 @@
 import subprocess
-import os, ast, pathlib
-import sys
+import sys, os, ast, pathlib
+from importlib.util import find_spec, spec_from_file_location
+from importlib.machinery import PathFinder
 
 
 def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write=None):
-    print(f"copying {input_path} to {output_path}")
 
-    os.makedirs("/".join(output_path.split("/")[0:-1]), exist_ok=True)
+    os.makedirs(output_path.parent, exist_ok=True)
     with open(input_path) as input_file, open(output_path, 'w') as output_file:
         lines = input_file.readlines()
     
@@ -24,59 +24,60 @@ def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write
         
         output_file.writelines(lines[starting_index:])
 
+def get_modules_to_import(sketch_path):
+    '''legge il file <path> e identifica i moduli da importare'''
 
-def get_files_to_import(sketch_path):
-    '''legge il file presente <path> e identifica i file (nella stessa cartella) 
-    che vengono importati'''
-
-    sketch_folder = "/".join(sketch_path.split("/")[0:-1])
-
-    # TODO: implementare il resolve di moduli che non sono necessariamente
-    # nella stessa cartella (magari stanno dentro altre sottocartelle) 
-       
     with open(sketch_path) as f:
         code = f.read()
-    
-    nodes = ast.parse(code)
 
-    # cerco i file da importare
-    imports = []
+    # cerco gli import parsando il file
+    nodes = ast.parse(code)
     for node in ast.walk(nodes):
         if type(node) == ast.ImportFrom:
-            import_file = f"{node.module}.py"
-            imports.append(import_file)
+            yield node.module
         if type(node) == ast.Import:   # multiple imports, like "import module1, module2"
             for _import in node.names:
-                import_file = f"{_import.name}.py"
-                imports.append(import_file)
-   
+                yield _import.name
+
+
+def get_files_to_import(sketch_path):
+    '''legge il file <path> e identifica i file (nella stessa cartella) 
+    che vengono importati'''
+
+    sketch_folder = sketch_path.parent
+
+       
+    modules = get_modules_to_import(sketch_path)
+
+    # dai nomi trovo i file veri e propri, tenendo solo quelli nella stessa cartella
+    imports = []
+    for import_file in modules:
+        spec = import_file.replace(".", "/") + '.py'
+        spec = pathlib.Path(sketch_folder) / spec
+        spec = spec_from_file_location(import_file, spec)
+        if spec:
+            if sketch_folder in pathlib.Path(spec.origin).parents:
+                imports.append(spec.origin)
+
     for import_file in imports:
-        # convert name with dot into path
-        dotCount = import_file.count('.')
-        if dotCount >= 2: # un "." è quello dell'estensione... converto gli altri in "/"
-            import_file = import_file.replace(".", "/", dotCount - 1)
-        # controllo esista veramente
-        import_file_path = f"{sketch_folder}/{import_file}"
-        print(f"{import_file=}")
-        if os.path.isfile(import_file_path):
-            yield import_file
+        if os.path.isfile(import_file):
+            yield pathlib.Path(import_file).relative_to(sketch_folder)
+    
 
-
-def _compile(sketch_folder, sketch_name):
-    '''compile the python code found in <sketch_folder>/<sketch_name>.py
+def _compile(sketch_path):
+    '''compile the python code found in <sketch_path>
     and also all the python code imported by that file
     '''
+
+    sketch_name = sketch_path.name      # name + extension
+    sketch_folder = sketch_path.parent  # containing folder
+    name = sketch_path.stem             # name without extension
     
     env = os.environ
-    env["SKETCHBOOK_DIR"] = sketch_folder
-
-    sketch_path = f"{sketch_folder}/{sketch_name}"    
+    env["SKETCHBOOK_DIR"] = str(sketch_folder)
     
-    # rimuovo l'estensione .py da sketch_name
-    name = sketch_name.replace('.py', '')
-
     # la folder che conterrà il codice js compilato
-    js_folder = f'{sketch_folder}/{name}'
+    js_folder = sketch_folder / name
 
     # creo il progetto se non è gia presente:
     if not os.path.isdir(js_folder):
@@ -85,25 +86,16 @@ def _compile(sketch_folder, sketch_name):
     # poi ci copio dentro il file main 
     # (a cui levo le prime righe, che servono per lanciare questo script, e aggiungo l'import della
     # libreria pyp5js che fa funzionare il tutto)
-    add_import_to_file(
-        input_path=sketch_path, 
-        output_path=f'{js_folder}/{sketch_name}', 
-        line_to_skip='p5Launcher', 
-        line_to_write='from pyp5js import *\n'
-    )
+    add_import_to_file(input_path=sketch_path, output_path=js_folder / sketch_name, line_to_skip='p5Launcher')
 
     # faccio il parsing dell'ast per trovare anche i file da imporate
     # e copio anch'essi nella cartella
     imports = get_files_to_import(sketch_path)
 
-    # print(f"{list(imports)=}")
     for file_to_import in imports:
-        
-        input_path = f"{sketch_folder}/{file_to_import}"
-        output_path = f"{js_folder}/{file_to_import}"
-        add_import_to_file(input_path, output_path, 
-            line_to_write='from pyp5js import *\n'
-        )
+        input_path = sketch_folder / file_to_import
+        output_path = js_folder / file_to_import.parent / file_to_import.name
+        add_import_to_file(input_path, output_path, line_to_write='from pyp5js import *\n')
 
     # infine lancio il processo di transcrypting di tutta la folder
     subprocess.run(f'pyp5js compile {name}', env=env, shell=True, capture_output=True)
@@ -111,5 +103,5 @@ def _compile(sketch_folder, sketch_name):
 
 
 if __name__ == '__main__':
-    folder, name = sys.argv[1:]
-    _compile(folder, name)
+    path = sys.argv[1]
+    _compile(pathlib.Path(path))

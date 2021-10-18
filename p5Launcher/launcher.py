@@ -11,24 +11,24 @@ from .compiler import _compile
 
 
 
-def launch_server(folder, name, loop):
+def launch_server(path, loop):
 
-    print(f"{folder=}, {name=}")
+    sketch_folder = path.parent
 
-    name_without_ext = name.replace('.py', '')
+    # name_without_ext = name.replace('.py', '')
     package_dir = pathlib.Path(__file__).parent.resolve()
 
     asyncio.set_event_loop(loop)
     server = Server()
 
-    exclude = set(glob.glob(f'{folder}/{name_without_ext}/**/**/*.py'))
-    include = set(glob.glob(f'{folder}/**/**/*.py'))
+    exclude = set(glob.glob(f'{sketch_folder}/{path.stem}/**/*.py', recursive=True))
+    include = set(glob.glob(f'{sketch_folder}/**/*.py', recursive=True))
 
-    print(include - exclude)
+    for file in set(include) - set(exclude): 
+        server.watch(file, shell(f'python3 compiler.py {path}', cwd=package_dir))
+    
+    server.serve(root=path.stem, liveport=35729)  
 
-    server.watch(f'{folder}/**/!({name_without_ext})/**/*.py', shell(f'python3 compiler.py {folder} {name}', cwd=package_dir))
-    root = name.replace('.py', '')
-    server.serve(root=root, liveport=35729)  
 
 def launch_window(sketch_name, width=1100, height=700):
     webview.create_window(sketch_name, url='http://127.0.0.1:5500', width=width, height=height)        
@@ -37,35 +37,29 @@ def launch_window(sketch_name, width=1100, height=700):
 
 def _setup(width=1100, height=700):
 
+    # read command line args and configuration
     try:
         width = int(sys.argv[1])
         height = int(sys.argv[2])
     except:
         print('no or invalid parameters')
     
-    sketch_name = inspect.stack()[-1].filename
-
-    if "/" in sketch_name:
-        sketch_name = sketch_name.split("/")[-1]
-        
-    # get the folder from which the main script is imported
-    sketch_folder = os.getcwd()
+    # read sketch path/name from import stack anc convert to pathlib for easier manipulation
+    sketch_path = pathlib.Path(inspect.stack()[-1].filename)
     
     # compilo il codice
-    _compile(sketch_folder, sketch_name)
+    _compile(sketch_path)
 
     # creo un eventloop
     loop = asyncio.new_event_loop()
 
     # lancio il server di livereload
-    t = threading.Thread(target=launch_server, args=(sketch_folder, sketch_name, loop))
+    t = threading.Thread(target=launch_server, args=(sketch_path, loop))
     t.setDaemon(True)
     t.start()
 
     # creo una finestra e lancio il webview
-    # window = webview.create_window(sketch_name, url='http://127.0.0.1:5500', width=1100, height=700)        
-    # webview.start(debug=True) 
-    launch_window(sketch_name, width, height)
+    launch_window(sketch_path.name, width, height)
     
 
 _setup()
