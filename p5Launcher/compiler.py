@@ -1,16 +1,18 @@
+import importlib
 import subprocess
 import sys, os, ast
 from pathlib import Path
 
 
-def add_import_to_file(input_path, output_path, line_to_skip=None, line_to_write=None):
+def add_import_to_file(input_path, output_path, line_to_skip=None, lines_to_write=None):
 
     os.makedirs(output_path.parent, exist_ok=True)
     with open(input_path) as input_file, open(output_path, 'w') as output_file:
         lines = input_file.readlines()
 
-        if line_to_write:
-            output_file.write(line_to_write)
+        if lines_to_write:
+            for line in lines_to_write:
+                output_file.write(line)
 
         if line_to_skip:
             lines = [line for line in lines if line_to_skip not in line]
@@ -37,17 +39,21 @@ def get_modules_to_import(sketch_path):
 def get_files_to_import(sketch_path):
     '''legge il file <path> e identifica i file (nella stessa cartella) 
     che vengono importati'''
-
-    sketch_folder = sketch_path.parent
+    # TODO: sarebbe fico capire come importare anche file da cartelle parallele e/o moduli esterni
     modules = get_modules_to_import(sketch_path)
 
     # dai nomi trovo i file veri e propri, tenendo solo quelli nella stessa cartella
     for import_file in modules:
-        spec = Path(import_file.replace(".", "/")).with_suffix('.py')
-        spec = sketch_folder / spec
-        if sketch_folder in spec.parents:
-            if os.path.isfile(spec):
-                yield spec.relative_to(sketch_folder)
+        # prima provo a vedere se ci sono moduli installati con quel nome
+        spec = importlib.util.find_spec(import_file)
+        try:
+            spec = Path(spec.submodule_search_locations[0])
+            spec = spec / f"{import_file}.py"
+        except TypeError:
+            spec = Path(spec.origin)
+
+        if os.path.isfile(spec):
+            yield spec
 
     
 
@@ -71,18 +77,18 @@ def _compile(sketch_path):
         subprocess.call(f'pyp5js new -i transcrypt {name}', env=env, shell=True)
 
     # poi ci copio dentro il file main 
-    # (a cui levo le prime righe, che servono per lanciare questo script, e aggiungo l'import della
-    # libreria pyp5js che fa funzionare il tutto)
+    # (a cui levo le prime righe, che servono per lanciare questo script)
     add_import_to_file(input_path=sketch_path, output_path=js_folder / sketch_name, line_to_skip='p5Launcher')
 
-    # faccio il parsing dell'ast per trovare anche i file da imporate
+    # faccio il parsing dell'ast per trovare anche i file da importare
     # e copio anch'essi nella cartella
     imports = get_files_to_import(sketch_path)
 
     for file_to_import in imports:
-        input_path = sketch_folder / file_to_import
-        output_path = js_folder / file_to_import.parent / file_to_import.name
-        add_import_to_file(input_path, output_path, line_to_write='from pyp5js import *\n')
+        input_path = file_to_import
+        output_path = js_folder / file_to_import.name
+        add_import_to_file(input_path, output_path, lines_to_write=['from pyp5js import *\n'])
+
 
     # infine lancio il processo di transcrypting di tutta la folder
     subprocess.run(f'pyp5js compile {name}', env=env, shell=True, capture_output=True)

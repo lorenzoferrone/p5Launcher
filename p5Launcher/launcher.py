@@ -1,6 +1,7 @@
 '''questo è il file che viene lanciato quando il modulo viene importato
 e lo sketch (python) viene eseguito con python3 sketch_name.py
 '''
+import time
 import webview
 import asyncio
 from pathlib import Path
@@ -34,16 +35,16 @@ def launch_window(sketch_name, width=1100, height=700):
     webview.start(debug=True)          
 
 
-def _setup(width=1100, height=700):
+def _setup(width=1100, height=728):
 
     # read command line args and configuration
     try:
         width = int(sys.argv[1])
-        height = int(sys.argv[2])
+        height = int(sys.argv[2]) + 28 # button bar height
     except:
         print('no or invalid parameters')
     
-    # read sketch path/name from import stack anc convert to pathlib for easier manipulation
+    # read sketch path/name from import stack and convert to pathlib for easier manipulation
     sketch_path = Path(inspect.stack()[-1].filename)
     
     # compilo il codice
